@@ -33,6 +33,11 @@ namespace NinetiesTV
             Print("Most Words in Title", WordieastName(shows));
             Print("All Names", AllNamesWithCommas(shows));
             Print("All Names with And", AllNamesWithCommasPlsAnd(shows));
+            Print("Genres in the 80's", GenresIn80s(shows));
+            Print("Unique Genres", UniqueGenres(shows));
+            Print("Time to watch all episodes:", TimeToWatchEveryEpisode(shows));
+            Print("Total time:", TotalTime(shows));
+            Print("Shows By Year", ShowsByYear(shows));
         }
 
         /**************************************************************************************************
@@ -119,7 +124,7 @@ namespace NinetiesTV
         // 13. Return the names of the comedy shows sorted by IMDB rating.
         static List<string> ComediesByRating(List<Show> shows)
         {
-            return shows.OrderByDescending(s => s.ImdbRating).Select(s => s.Name).ToList();
+            return shows.Where(s => s.Genres.Contains("Comedy")).OrderByDescending(s => s.ImdbRating).Select(s => s.Name).ToList();
         }
 
         // 14. Return the shows with more than one genre ordered by their starting year.
@@ -170,19 +175,19 @@ namespace NinetiesTV
         // 21. Return the show with the most words in the name.
         static Show WordieastName(List<Show> shows)
         {
-            throw new NotImplementedException();
+            return shows.OrderByDescending(s => s.Name.Split(" ").Length).FirstOrDefault();
         }
 
         // 22. Return the names of all shows as a single string seperated by a comma and a space.
         static string AllNamesWithCommas(List<Show> shows)
         {
-            throw new NotImplementedException();
+            return string.Join(", ", shows.Select(s => s.Name)); 
         }
 
         // 23. Do the same as above, but put the word "and" between the second-to-last and last show name.
         static string AllNamesWithCommasPlsAnd(List<Show> shows)
         {
-            throw new NotImplementedException();
+            return string.Join(", ", shows.Select(s => s.Name).Take(shows.Count -1) + ", and " + shows.Select(s => s.Name).Last());
         }
 
 
@@ -193,18 +198,59 @@ namespace NinetiesTV
          talked about. Such as:
 
             GroupBy()
-            SelectMany()
+            SelectMany()   I think this is for selecting from a list?
             Count()
 
         **************************************************************************************************/
 
         // 1. Return the genres of the shows that started in the 80s.
-        // 2. Print a unique list of geners.
+        static List<string> GenresIn80s(List<Show> shows)
+        {
+            return shows.Where(s => s.StartYear >= 1980 && s.StartYear < 1990).SelectMany(s => s.Genres).Distinct().ToList();
+        }
+
+        // 2. Print a unique list of genres.
+        static List<string> UniqueGenres(List<Show> shows)
+        {
+            return shows.SelectMany(s => s.Genres).Distinct().ToList();
+        }
+
         // 3. Print the years 1987 - 2018 along with the number of shows that started in each year (note many years will have zero shows)
-        // 4. Assume each episode of a comedy is 22 minutes long and each episode of a show that isn't a comedy is 42 minutes. How long would it take to watch every episode of each show?
+        static List<string> ShowsByYear(List<Show> shows)
+        {            
+            return shows
+            .Where(s => s.StartYear > 1986 && s.StartYear < 2019)
+            .GroupBy(s => s.StartYear) //now we get an IENumberale list like thing of groups. they will have a key that we used to group by. 
+            .Select(yg => $"{yg.Key} - {yg.Count()}") //for each group, we map to this string. 
+            .ToList();
+        }
+        
+        // 4. Assume each episode of a comedy is 22 minutes long and each episode of a show that isn't a comedy is 42 minutes. 
+        //How long would it take to watch every episode of each show?
+        static List<string> TimeToWatchEveryEpisode(List<Show> shows)
+        {
+            return shows
+            .Select(s => $"{s.Name} - {s.EpisodeCount * (s.Genres.Contains("Comedy") ? 22 : 42)}").ToList();
+        }
+
+        //eric's way of doing num 4
+        static int TotalTime(List<Show> shows)
+        {
+            var totalEpisodeTime =
+                shows.Aggregate(0, (total, next) =>
+                    next.Genres.Contains("Comedy") ? total += next.EpisodeCount * 22 : total += next.EpisodeCount * 42);
+            return totalEpisodeTime;
+        }
+        
         // 5. Assume each show ran each year between its start and end years (which isn't true), which year had the highest average IMDB rating.
-
-
+        static int HighestImdbAvgYear(List<Show> shows)
+        {
+            return shows
+                .SelectMany(s => Enumerable.Range(s.StartYear,s.EndYear - s.StartYear + 1).Select(y => new {Year = y, Show = s}))
+                .GroupBy(showYear => showYear.Year)
+                .OrderByDescending(showYearGroup => showYearGroup.Average(sg => sg.Show.ImdbRating))
+                .First().Key;
+        }
 
         /**************************************************************************************************
          There is no code to write or change below this line, but you might want to read it.
